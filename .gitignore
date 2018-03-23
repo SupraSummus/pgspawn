@@ -1,0 +1,3 @@
+build/
+dist/
+pgspawn.egg-info/

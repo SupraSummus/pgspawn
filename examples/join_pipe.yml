@@ -1,0 +1,10 @@
+self: root
+nodes:
+  1: [echo, one]
+  2: [echo, two]
+  3: [echo, three]
+  cat: [cat]
+edges:
+  - [[1, 1], [cat, 1]]
+  - [[2, 1], [cat, 1]]
+  - [[3, 1], [cat, 1]]

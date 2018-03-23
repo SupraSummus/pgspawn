@@ -1,0 +1,12 @@
+self: self
+nodes:
+  echo: [echo, hello]
+  1: [cat]
+  2: [cat]
+  join: [cat]
+edges:
+  - [[echo, 1], [1, 0]]
+  - [[echo, 1], [2, 0]]
+  - [[1, 1], [join, 0]]
+  - [[2, 1], [join, 0]]
+  - [[join, 1], [self, 1]]

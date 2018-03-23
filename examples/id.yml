@@ -1,0 +1,6 @@
+self: self
+nodes:
+  cat: [cat]
+edges:
+  - [[self, 0], [cat, 0]]
+  - [[cat, 1], [self, 1]]

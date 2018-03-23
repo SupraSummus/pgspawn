@@ -1,0 +1,32 @@
+#!/usr/bin/env python
+
+import argparse
+import logging
+import yaml
+
+from pgspawn import PipeGraph, logger
+
+
+parser = argparse.ArgumentParser(description="Spawn graph of streaming commands.")
+parser.add_argument("file", type=open, help="file containing graph description")
+parser.add_argument(
+    "-v", "--verbose",
+    dest='verbose_count', action='count', default=0,
+    help="increases log verbosity for each occurence",
+)
+
+if __name__ == '__main__':
+    arguments = parser.parse_args()
+
+    # Sets log level to WARN going more verbose for each new -v.
+    logger.setLevel(max(3 - arguments.verbose_count, 0) * 10)
+    logging.basicConfig(level=logging.DEBUG)
+
+    description = yaml.load(arguments.file)
+    arguments.file.close()
+
+    pg = PipeGraph()
+    pg.make_pipes(description['edges'], description['self'])
+    pg.spawn(description['nodes'])
+    pg.close_fds()
+    pg.join()

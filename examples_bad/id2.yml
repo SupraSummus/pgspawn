@@ -1,0 +1,4 @@
+self: self
+nodes: {}
+edges:
+  - [[self, 0], [self, 1]]

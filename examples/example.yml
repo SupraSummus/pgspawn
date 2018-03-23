@@ -1,0 +1,10 @@
+self: root
+nodes:
+  start: [echo, start]
+  end: [echo, end]
+  concat: [cat, /proc/self/fd/0, /proc/self/fd/3, /proc/self/fd/4]
+edges:
+  - [[start, 1], [concat, 0]]
+  - [[root, 0], [concat, 3]]
+  - [[end, 1], [concat, 4]]
+  - [[concat, 1], [root, 1]]
