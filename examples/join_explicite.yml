@@ -1,0 +1,12 @@
+outputs:
+  stdout: 1
+nodes:
+  - command: [echo, one]
+    outputs:
+      1: stdout
+  - command: [echo, two]
+    outputs:
+      1: stdout
+  - command: [echo, three]
+    outputs:
+      1: stdout

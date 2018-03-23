@@ -1,0 +1,4 @@
+inputs:
+  stdin: 0
+outputs:
+  stdin: 1

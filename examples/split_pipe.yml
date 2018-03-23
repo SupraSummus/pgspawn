@@ -1,0 +1,10 @@
+nodes:
+  - command: [cat]
+    outputs:
+      1: data
+  - command: [sed, -e, s/^/p1: /]
+    inputs:
+      0: data
+  - command: [sed, -e, s/^/p2: /]
+    inputs:
+      0: data

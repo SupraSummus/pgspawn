@@ -1,0 +1,13 @@
+nodes:
+  - command: [echo, one]
+    outputs:
+      1: into_cat
+  - command: [echo, two]
+    outputs:
+      1: into_cat
+  - command: [echo, three]
+    outputs:
+      1: into_cat
+  - command: [cat]
+    inputs:
+      0: into_cat

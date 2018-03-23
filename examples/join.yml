@@ -1,0 +1,4 @@
+nodes:
+  - command: [echo, one]
+  - command: [echo, two]
+  - command: [echo, three]
