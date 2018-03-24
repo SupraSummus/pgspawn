@@ -50,7 +50,7 @@ read from `feedback` pipe.
 ### swap stdout-stderr
 
 It's possible to use parent's program fds in `inputs` and `outputs` descriptions.
-Just give them name and roll:
+Just give them names and roll:
 
     $ cat examples/swap.yml
     outputs:
