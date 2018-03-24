@@ -3,64 +3,72 @@ PGSpawn
 
 Spawn graph of processes that communicate with each other via anonymous pipes.
 
-    $ echo 123 | pgspawn examples/example.yml 
-    start
-    123
-    end
-    end2
+Examples
+--------
 
-Graph description
------------------
+Check the `examples/` directory.
 
-Just a graph definition encoded in YAML. For example:
+### id
 
+As input it takes YAML file with graph description in it. For example single-node graph:
+
+    $ cat examples/id.yml
     nodes:
       - command: [cat]
+    $ echo abc | pgspawn examples/id.yml
+    abc
 
 It spawns `cat` program and doesn't do anything about file descriptors,
 so child process inherits standard fds (probably stdin, stdout, stderr).
 
-More complicated example (`examples/example2.yml`, it's a TCP chat with
-expression evaluation):
+### yes
 
+We can do more complex. Lets write `yes` program counterpart:
+
+    $ cat examples/yes.yml
     nodes:
-      # ncat tcp server waiting for many connections
-      - command: [ncat, -v, -l, -k, -p7000]
-        inputs:
-          0: send
+      - command: [cat]
         outputs:
-          2: log
-          1: received
-
-      # periodic echo of current date is sent to opened connections
-      - command: [bash, -c, 'while true; do date; sleep 10; done']
-        outputs:
-          1: send
-
-      # log being saved to a file
-      - command: [bash, -c, 'cat > logfile.txt']
-        inputs:
-          0: log
-
-      # incoming data is echoed back but also processed by our fancy machinery
+          1: feedback
       - command: [tee, /proc/self/fd/3]
         inputs:
-          0: received
+          0: feedback
         outputs:
-          1: send
-          3: unfiltered_exprs
+          3: feedback
+    $ echo y | pgspawn examples/yes.yml
+    y
+    y
+    y
+    ...
 
-      # pass only lines beginning with `#`
-      - command: [sed, -rn, -u, 's/^#(.*)/\1/p']
-        inputs:
-          0: unfiltered_exprs
-        outputs:
-          1: exprs
+What it does is create pipe (named internally `feedback`) and use it to
+feed output into input. Section `outputs: {1: feedback}` describes that
+file descriptor 1 used by `cat` (it's stdout) is fed into our pipe.
+Section `inputs: {0: feedback}` denotes that fd 0 of `tee` program is
+read from `feedback` pipe.
 
-      # evaluate expressions and send results
-      - command: [xargs, -L1, expr]
-        inputs:
-          0: exprs
+### swap stdout-stderr
+
+It's possible to use parent's program fds in `inputs` and `outputs` descriptions.
+Just give them name and roll:
+
+    $ cat examples/swap.yml
+    outputs:
+      stdout: 1
+      stderr: 2
+    nodes:
+      - command: [bash, -c, echo "I'm stdout"; echo "I'm stderr" >&2;]
         outputs:
-          1: send
-          2: send
+          1: stderr
+          2: stdout
+    $ pgspawn examples/swap.yml > /dev/null
+    I'm stdout
+    $ pgspawn examples/swap.yml 2> /dev/null
+    I'm stderr
+
+Similar you can do with `inputs` (see `examples/id_explicite.yml`).
+
+### server
+
+More complicated example is shown in `examples/server.yml`.
+It's a TCP chat with expression evaluation.

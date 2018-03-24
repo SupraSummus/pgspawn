@@ -1,0 +1,8 @@
+outputs:
+  stdout: 1
+  stderr: 2
+nodes:
+  - command: [bash, -c, echo "I'm stdout"; echo "I'm stderr" >&2;]
+    outputs:
+      1: stderr
+      2: stdout
