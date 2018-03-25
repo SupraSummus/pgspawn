@@ -1,7 +1,16 @@
 PGSpawn
 =======
 
-Spawn graph of processes that communicate with each other via anonymous pipes.
+Dead simple utility for spawning graph of processes connected by pipes in UNIX system. Each process is being equiped with specified UNIX pipes at specified file descriptors. Whole graph description is contained in a YAML file.
+
+`pgspawn` is awesome! Why? Here are some arguments for it:
+
+* It follows the UNIX philosophy.
+* It's simple and understandable.
+* It uses standard syntax - YAML is well known and pretty.
+* It uses standard pipe semantics - UNIX pipe is battle-tested.
+* It's language agnostic. `pgspawn` doesn't care about language - it spawns just *processes*.
+* It's efficient. After spawning phase all work is done by OS.
 
 Examples
 --------
