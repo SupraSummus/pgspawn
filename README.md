@@ -17,9 +17,11 @@ Examples
 
 Check the `examples/` directory.
 
+As input `pgspawn` takes YAML file with graph description in it.
+
 ### id
 
-As input it takes YAML file with graph description in it. For example single-node graph:
+A very simple, single-node graph can be as follows:
 
     $ cat examples/id.yml
     nodes:
@@ -56,6 +58,10 @@ file descriptor 1 used by `cat` (it's stdout) is fed into our pipe.
 Section `inputs: {0: feedback}` denotes that fd 0 of `tee` program is
 read from `feedback` pipe.
 
+Graph drawn with explicitly connected stdin and stdout:
+
+![](images/yes_explicite.png)
+
 ### swap stdout-stderr
 
 It's possible to use parent's program fds in `inputs` and `outputs` descriptions.
@@ -77,10 +83,25 @@ Just give them names and roll:
 
 Similar you can do with `inputs` (see `examples/id_explicite.yml`).
 
+![](images/swap.png)
+
 ### server
 
 More complicated example is shown in `examples/server.yml`.
 It's a TCP chat with expression evaluation.
+
+![](images/server.png)
+
+pg2dot
+------
+
+For documentation purposes there is `pg2dot` program that converts YAML
+description of graph into [DOT file](https://en.wikipedia.org/wiki/DOT_(graph_description_language)
+supported by [graphviz](http://www.graphviz.org/).
+
+To generate image run something like:
+
+    cat examples/yes_explicite_full.yml | pg2dot | dot -T png -o graph.png
 
 Similar tools
 -------------

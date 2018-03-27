@@ -6,7 +6,7 @@ import signal
 import sys
 import yaml
 
-from pgspawn import PipeGraph
+from pgspawn import PipeGraphSpawner, Graph
 
 
 parser = argparse.ArgumentParser(description="Spawn graph of streaming commands.")
@@ -31,7 +31,7 @@ if __name__ == '__main__':
     description = yaml.load(arguments.file)
     arguments.file.close()
 
-    pg = PipeGraph.from_dict(description)
+    pg = PipeGraphSpawner.from_graph(Graph.from_dict(description))
     pg.close_fds()
     statusses = pg.join()
     sys.exit(max(0, *statusses.values()))

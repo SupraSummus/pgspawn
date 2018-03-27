@@ -1,9 +1,44 @@
+from collections import namedtuple
 import logging
 import os
 import sys
 
 
 logger = logging.getLogger(__name__)
+
+
+class Node(namedtuple('Node', ('command', 'inputs', 'outputs'))):
+    @classmethod
+    def from_dict(cls, description):
+        return cls(
+            description['command'],
+            description.get('inputs', {}),
+            description.get('outputs', {}),
+        )
+
+
+class Graph(namedtuple('Graph', ('inputs', 'outputs', 'nodes'))):
+    @classmethod
+    def from_dict(cls, description):
+        return cls(
+            description.get('inputs', {}),
+            description.get('outputs', {}),
+            list(map(Node.from_dict, description.get('nodes', []))),
+        )
+
+    @property
+    def pipe_names(self):
+        pipes = set()
+        pipes.update(
+            self.inputs.keys(),
+            self.outputs.keys(),
+        )
+        for node in self.nodes:
+            pipes.update(
+                node.inputs.values(),
+                node.outputs.values(),
+            )
+        return pipes
 
 
 def apply_fd_mapping(fd_mapping):
@@ -32,20 +67,16 @@ def apply_fd_mapping(fd_mapping):
         _dup_mapping(fd, target_fd)
 
 
-class PipeGraph:
+class PipeGraphSpawner:
     @classmethod
-    def from_dict(cls, description):
-        pg = cls(
-            description.get('inputs', {}),
-            description.get('outputs', {}),
+    def from_graph(cls, graph):
+        spawner = cls(
+            inputs=graph.inputs,
+            outputs=graph.outputs,
         )
-        for node in description.get('nodes', []):
-            pg.spawn(
-                node['command'],
-                node.get('inputs', {}),
-                node.get('outputs', {}),
-            )
-        return pg
+        for node in graph.nodes:
+            spawner.spawn(node.command, node.inputs, node.outputs)
+        return spawner
 
     def __init__(self, inputs={}, outputs={}):
         self._reading_ends = {}

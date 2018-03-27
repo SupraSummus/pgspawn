@@ -1,0 +1,19 @@
+inputs:
+  stdin: 0
+outputs:
+  stdout: 1
+  stderr: 2
+nodes:
+  - command: [cat]
+    inputs:
+      0: stdin
+    outputs:
+      1: feedback
+      2: stderr
+  - command: [tee, /proc/self/fd/3]
+    inputs:
+      0: feedback
+    outputs:
+      1: stdout
+      2: stderr
+      3: feedback
