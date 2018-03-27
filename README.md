@@ -81,3 +81,8 @@ Similar you can do with `inputs` (see `examples/id_explicite.yml`).
 
 More complicated example is shown in `examples/server.yml`.
 It's a TCP chat with expression evaluation.
+
+Similar tools
+-------------
+
+* [pipexec](https://github.com/flonatel/pipexec)
