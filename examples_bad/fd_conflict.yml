@@ -1,0 +1,6 @@
+nodes:
+  - command: [cat]
+    inputs:
+      0: a_pipe
+    outputs:
+      0: a_pipe

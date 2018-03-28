@@ -1,0 +1,3 @@
+nodes:
+  - command: [bash, -c, exit 34]
+  - command: [bash, -c, exit 57]

@@ -104,13 +104,25 @@ To generate image run something like:
     cat examples/yes_explicite_full.yml | pg2dot | dot -T png -o graph.png
 
 Notes on concurrent reading and writing to fd
---------------------------------------------
+---------------------------------------------
+
+`pgspawn` allows to make multiple programs write or read from single fd. If you do this you better be aware of what to expect.
 
 When multiple programs are writing into single pipe content gets interlaced, but there are rules. One can enforce write atomicity by writing small enough chunks. POSIX defines that size (PIPE_BUF) to be at least 512 bytes. (Yeah, citation needed.)
 
 For concurrent reads matter is worse. There are some ways to make atomic read but all of them (no proof for that) rely on implementation, not on standard. There is hopeful [chapter in libc manual](https://www.gnu.org/software/libc/manual/html_node/Pipe-Atomicity.html) but `man 3 read` tells:
 
 > The behavior of multiple concurrent reads on the same pipe, FIFO, or terminal device is unspecified.
+
+Running tests
+-------------
+
+They are contained in `test.sh` file and exmaples directories.
+
+Running is not so standard. I do it like this:
+
+    python setup.py develop --user
+    ./test.sh
 
 See also
 --------

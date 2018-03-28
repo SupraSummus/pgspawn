@@ -1,0 +1,6 @@
+inputs:
+  stdin: 0
+nodes:
+  - command: [cat]
+    outputs:
+      1: stdin

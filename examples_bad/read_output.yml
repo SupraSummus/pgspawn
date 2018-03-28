@@ -1,0 +1,6 @@
+outputs:
+  stdout: 1
+nodes:
+  - command: [cat]
+    inputs:
+      0: stdout

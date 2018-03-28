@@ -1,0 +1,4 @@
+nodes:
+  - command: [/bin/true]
+    outputs:
+      1: a_pipe

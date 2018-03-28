@@ -6,7 +6,7 @@ import signal
 import sys
 import yaml
 
-from pgspawn import PipeGraphSpawner, Graph
+from pgspawn import PipeGraphSpawner, Graph, GraphException
 
 
 parser = argparse.ArgumentParser(description="Spawn graph of streaming commands.")
@@ -28,10 +28,26 @@ if __name__ == '__main__':
         level=max(3 - arguments.verbose_count, 0) * 10,
     )
 
+    logging.debug("Hi, this is pgspawn speaking. Running with commandline {}.".format(sys.argv))
+
+    logging.debug("Reading description.")
     description = yaml.load(arguments.file)
     arguments.file.close()
 
-    pg = PipeGraphSpawner.from_graph(Graph.from_dict(description))
-    pg.close_fds()
-    statusses = pg.join()
-    sys.exit(max(0, *statusses.values()))
+    logging.debug("Constructing and checking the graph.")
+    try:
+        g = Graph.from_dict(description)
+    except GraphException as e:
+        logging.error(str(e))
+        sys.exit(1)
+
+    logging.debug("Making pipes, spawning child processes. Sounds like fun...")
+    pgs = PipeGraphSpawner.from_graph(g)
+    pgs.close_fds()
+    statusses = pgs.join()
+
+    logging.debug("See ya. It was pgspawn speaking.")
+    if len(statusses) == 0:
+        sys.exit(0)
+    else:
+        sys.exit(max(statusses.values()))
