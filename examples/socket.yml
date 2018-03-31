@@ -1,0 +1,27 @@
+nodes:
+  - command: [socat, -, 'FD:3']
+    inputs:
+      0: aaa
+    outputs:
+      1: check_bbb
+    sockets:
+      3: a_sock
+  - command: [socat, -, 'FD:4']
+    inputs:
+      0: bbb
+    outputs:
+      1: check_aaa
+    sockets:
+      4: a_sock
+  - command: [echo, aaa]
+    outputs:
+      1: aaa
+  - command: [echo, bbb]
+    outputs:
+      1: bbb
+  - command: [./stdin-eq, aaa\n]
+    inputs:
+      0: check_aaa
+  - command: [./stdin-eq, bbb\n]
+    inputs:
+      0: check_bbb

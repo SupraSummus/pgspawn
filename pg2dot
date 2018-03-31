@@ -40,11 +40,14 @@ if __name__ == '__main__':
     graph = Graph.from_dict(description)
 
     # make visualized graph (empty so far)
-    gv = graphviz.Digraph()
+    gv = graphviz.Digraph(strict=True)
 
-    # add pipes as separate nodes - needed because of possible many-to-many connections
-    for pipe in graph.pipe_names:
-        gv.node(pipe)
+    # TODO draw global inputs, outputs and sockets
+    # * draw with different style to visualize their different nature
+    # * currently global, unused inputs, outputs and sockets will not be drawn
+
+    # dict socket_id -> node in graphviz description
+    socket_starts = {}
 
     # for each node make subgraph and add each fd as its node
     for node_id, node in enumerate(graph.nodes):
@@ -52,14 +55,32 @@ if __name__ == '__main__':
         #       so that Graphviz recognizes it as a special cluster subgraph
         with gv.subgraph(name='cluster_{}'.format(node_id)) as subgv:
             subgv.attr(label=str(node.command))
+
             for fd, pipe_name in node.outputs.items():
                 subgv_node_id = '{}-{}'.format(node_id, fd)
                 subgv.node(subgv_node_id, label=str(fd))
                 gv.edge(subgv_node_id, pipe_name)
+
             for fd, pipe_name in node.inputs.items():
                 subgv_node_id = '{}-{}'.format(node_id, fd)
                 subgv.node(subgv_node_id, label=str(fd))
                 gv.edge(pipe_name, subgv_node_id)
+
+            for fd, socket_id in node.sockets.items():
+                subgv_node_id = '{}-{}'.format(node_id, fd)
+                subgv.node(subgv_node_id, label=str(fd))
+                if socket_id in socket_starts:
+                    gv.edge(
+                        socket_starts[socket_id], subgv_node_id,
+                        label=socket_id,
+                        dir='both',
+                    )
+                    del socket_starts[socket_id]
+                else:
+                    socket_starts[socket_id] =  subgv_node_id
+
+    # TODO draw unused socket ends
+    # * draw them RED! they have to look dangerous
 
     # output result
     print(gv.source, file=arguments.output_file)

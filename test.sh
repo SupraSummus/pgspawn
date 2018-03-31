@@ -1,10 +1,6 @@
 #!/usr/bin/env bash
 set -e
 
-function assert {
-	diff /proc/self/fd/0 <(echo -en "$1")
-}
-
 function assert_code {
 	set +e
 	$1 >/dev/null 2>&1
@@ -16,14 +12,16 @@ function assert_code {
 	fi
 }
 
-echo abcd | pgspawn examples/id.yml | assert 'abcd\n'
-echo abcd | pgspawn examples/id_explicite.yml | assert 'abcd\n'
+echo abcd | pgspawn examples/id.yml | ./stdin-eq 'abcd\n'
+echo abcd | pgspawn examples/id_explicite.yml | ./stdin-eq 'abcd\n'
 
-pgspawn examples/join.yml | sort | assert 'one\nthree\ntwo\n'
-pgspawn examples/join_explicite.yml | sort | assert 'one\nthree\ntwo\n'
-pgspawn examples/join_pipe.yml | sort | assert 'one\nthree\ntwo\n'
+pgspawn examples/join.yml | sort | ./stdin-eq 'one\nthree\ntwo\n'
+pgspawn examples/join_explicite.yml | sort | ./stdin-eq 'one\nthree\ntwo\n'
+pgspawn examples/join_pipe.yml | sort | ./stdin-eq 'one\nthree\ntwo\n'
 
-echo -en 'a\nb\nc\n' | pgspawn examples/split_pipe.yml | sort | assert 'a\nb\n'
+echo -en 'a\nb\nc\n' | pgspawn examples/split_pipe.yml | sort | ./stdin-eq 'a\nb\n'
+
+pgspawn examples/socket.yml
 
 assert_code "pgspawn examples_bad/id.yml" 1
 assert_code "pgspawn examples_bad/fd_conflict.yml" 1

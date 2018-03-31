@@ -1,0 +1,2 @@
+#!/bin/bash
+diff /proc/self/fd/0 <(echo -en "${@:1}") 1>&2

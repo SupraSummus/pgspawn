@@ -1,7 +1,7 @@
 PGSpawn
 =======
 
-Dead simple utility for spawning graph of processes connected by pipes in UNIX system. Each process is being equiped with specified UNIX pipes at specified file descriptors. Whole graph description is contained in a YAML file.
+Dead simple utility for spawning graph of processes connected by streams in UNIX system. Each process is being equiped with specified UNIX pipes and sockets at specified file descriptors. Whole graph description is contained in a YAML file.
 
 `pgspawn` is awesome! Why? Here are some arguments for it:
 
@@ -92,6 +92,12 @@ It's a TCP chat with expression evaluation.
 
 ![](images/server.png)
 
+### sockets
+
+Simple example with use of socket-connected processes is shown in `examples/socket.yml`.
+
+![](images/socket.png)
+
 pg2dot
 ------
 
@@ -113,6 +119,11 @@ When multiple programs are writing into single pipe content gets interlaced, but
 For concurrent reads matter is worse. There are some ways to make atomic read but all of them (no proof for that) rely on implementation, not on standard. There is hopeful [chapter in libc manual](https://www.gnu.org/software/libc/manual/html_node/Pipe-Atomicity.html) but `man 3 read` tells:
 
 > The behavior of multiple concurrent reads on the same pipe, FIFO, or terminal device is unspecified.
+
+Notes on socket usage
+---------------------
+
+Of course socket can be modelled as a pair of unidirectional pipes. Such pipes will be connected at two fds in child process. Some programs may not support that and expect single fd. `pgspawn` can create pair of connected, anonymous UNIX domain sockets (like `socketpair()` from `<sys/socket.h>`) and pass them to child processes. Such a connection can be shared only between two processes unlike unidirectional pipe that can be used by many more processes.
 
 Running tests
 -------------
