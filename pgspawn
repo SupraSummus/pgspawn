@@ -10,7 +10,12 @@ from pgspawn import PipeGraphSpawner, Graph, GraphException
 
 
 parser = argparse.ArgumentParser(description="Spawn graph of streaming commands.")
-parser.add_argument("file", type=open, help="file containing graph description")
+parser.add_argument("file", type=argparse.FileType('r'), help="file containing graph description")
+parser.add_argument(
+    "-l", "--log",
+    dest='log', default=sys.stderr, type=argparse.FileType('w'),
+    help="where to put logs, use something like /proc/self/fd/5 for logging to custom fd",
+)
 parser.add_argument(
     "-v", "--verbose",
     dest='verbose_count', action='count', default=0,
@@ -26,6 +31,7 @@ if __name__ == '__main__':
     logging.basicConfig(
         format='%(process)d %(levelname)s: %(message)s',
         level=max(3 - arguments.verbose_count, 0) * 10,
+        stream=arguments.log,
     )
 
     logging.debug("Hi, this is pgspawn speaking. Running with commandline {}.".format(sys.argv))
