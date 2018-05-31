@@ -146,3 +146,4 @@ See also
 --------
 
 * [pipexec](https://github.com/flonatel/pipexec) - similar tool
+* [dgsh](https://www2.dmst.aueb.gr/dds/sw/dgsh/) - extending UNIX pipeline to DAG
