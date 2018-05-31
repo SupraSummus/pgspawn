@@ -3,7 +3,16 @@ from setuptools import setup
 
 setup(
     name='pgspawn',
-    version='1.0',
+    version='0.1.0',
+    description='Spawn graph of processes that communicate with each other via UNIX pipes',
+    license='MIT',
+    url='https://github.com/SupraSummus/pgspawn',
+    classifiers=[
+        'Operating System :: POSIX',
+        'Topic :: System',
+        'Topic :: Utilities',
+    ],
+    keywords='unix pipe graph command',
     py_modules=['pgspawn'],
     scripts=[
         'pgspawn',

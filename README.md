@@ -12,6 +12,13 @@ Dead simple utility for spawning graph of processes connected by streams in UNIX
 * It's language agnostic. `pgspawn` doesn't care about language - it spawns just *processes*.
 * It's efficient. After spawning phase all work is done by OS.
 
+Install
+-------
+
+Package is available from pypi
+
+    pip install pgspawn
+
 Examples
 --------
 

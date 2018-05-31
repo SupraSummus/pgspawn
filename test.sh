@@ -27,8 +27,8 @@ assert_code "pgspawn examples_bad/id.yml" 1
 assert_code "pgspawn examples_bad/fd_conflict.yml" 1
 assert_code "pgspawn examples/orphaned_write_end.yml" 0
 assert_code "pgspawn examples/orphaned_read_end.yml" 0
-assert_code "pgspawn examples/write_input.yml" 1
-assert_code "pgspawn examples/read_output.yml" 1
+assert_code "pgspawn examples_bad/write_input.yml" 1
+assert_code "pgspawn examples_bad/read_output.yml" 1
 assert_code "pgspawn examples_bad/extra_keys.yml" 0
 assert_code "pgspawn examples_bad/extra_keys.yml" 0
 assert_code "pgspawn examples/exit_max.yml" 57
