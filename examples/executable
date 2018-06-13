@@ -1,0 +1,3 @@
+#!/usr/bin/env pgspawn
+nodes:
+ - command: [echo, 'hashbang!']

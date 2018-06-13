@@ -69,6 +69,19 @@ Graph drawn with explicitly connected stdin and stdout:
 
 ![](images/yes_explicite.png)
 
+### shebang and pgspawn
+
+YAML allows for `#`-comments so they mix well together. Take a look at `examples/executable`:
+
+    #!/usr/bin/env pgspawn
+    nodes:
+     - command: [echo, 'hashbang!']
+
+And I can do this:
+
+    $ examples/executable
+    hashbang!
+
 ### swap stdout-stderr
 
 It's possible to use parent's program fds in `inputs` and `outputs` descriptions.
