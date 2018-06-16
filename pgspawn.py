@@ -51,7 +51,7 @@ class Graph(namedtuple('Graph', ('inputs', 'outputs', 'sockets', 'nodes'))):
 
         g.check_for_pipe_collisions()
         g.check_pipe_directions()
-        g.check_for_fd_collisions()
+        #g.check_for_fd_collisions()
         g.check_sockets()
         g.check_for_dead_ends()
 
@@ -160,6 +160,24 @@ def apply_fd_mapping(fd_mapping):
         _dup_mapping(fd, target_fd)
 
 
+def socketpair():
+    """ like socket.socketpair but returns raw fds
+    Caller must take care of returned fds (close them after use).
+    """
+    def getfd(sock):
+        fd = sock.detach()
+        assert(fd >= 0)
+        return fd
+    return tuple(map(getfd, socket.socketpair()))
+
+
+def shutdown(fd, how):
+    sock = socket.fromfd(fd, socket.AF_UNIX, socket.SOCK_STREAM)
+    ret = sock.shutdown(how)
+    sock.detach()  # dont know is thats necessary
+    return ret
+
+
 class PipeGraphSpawner:
     @classmethod
     def from_graph(cls, graph):
@@ -172,9 +190,11 @@ class PipeGraphSpawner:
         return spawner
 
     def __init__(self, inputs={}, outputs={}, sockets={}):
+        # pipe id -> fd
         self._reading_ends = {}
         self._writing_ends = {}
         self._socket_other_ends = {}
+
         self._processes = set()
 
         def register_fds(our_dict, input_dict):
@@ -187,25 +207,64 @@ class PipeGraphSpawner:
         register_fds(self._socket_other_ends, sockets)
 
     def spawn(self, command, inputs, outputs, sockets):
+        # which fds should go to child and how they should be rearranged
+        # in-child-fd -> original, parent fd
         fd_mapping = {}
+        def add_mapping(child_fd, parent_fd):
+            assert(child_fd not in fd_mapping)
+            fd_mapping[child_fd] = parent_fd
+
+        # what to close in parent after the child is spawned
         fds_to_be_closed_in_parent = []
+        # some fds may be RW and we need only one half
+        fds_to_shutdown_read_in_child = []
+        fds_to_shutdown_write_in_child = []
+
+        # mappings of readonly and writeonly fds
         for subprocess_fd, pipe_id in inputs.items():
-            assert(subprocess_fd not in fd_mapping)
-            fd_mapping[subprocess_fd] = self._reading_end_fd(pipe_id)
+            if subprocess_fd not in outputs:
+                parent_fd = self._reading_end_fd(pipe_id)
+                add_mapping(subprocess_fd, parent_fd)
+                if parent_fd in self._writing_ends.values():
+                    # fd is also for writing - need to shut this half down
+                    fds_to_shutdown_write_in_child.append(subprocess_fd)
         for subprocess_fd, pipe_id in outputs.items():
-            assert(subprocess_fd not in fd_mapping)
-            fd_mapping[subprocess_fd] = self._writing_end_fd(pipe_id)
+            if subprocess_fd not in inputs:
+                parent_fd = self._writing_end_fd(pipe_id)
+                add_mapping(subprocess_fd, parent_fd)
+                if parent_fd in self._reading_ends.values():
+                    # fd is also for reading - need to shut this half down
+                    fds_to_shutdown_read_in_child.append(subprocess_fd)
+
+        # mappings of read-write fds
+        for subprocess_fd in set(inputs.keys()).intersection(outputs.keys()):
+            self._hint_rw(inputs[subprocess_fd], outputs[subprocess_fd])
+            parent_reading_fd = self._reading_end_fd(inputs[subprocess_fd])
+            parent_writing_fd = self._writing_end_fd(outputs[subprocess_fd])
+            if parent_reading_fd == parent_writing_fd:
+                add_mapping(subprocess_fd, parent_reading_fd)
+            else:
+                raise NotImplementedError("tried to map both readonly {} and writeonly {} to RW {}".format(
+                    parent_reading_fd, parent_writing_fd, subprocess_fd,
+                ))
+
+        # mapping of socket fds
         for subprocess_fd, socket_id in sockets.items():
-            assert(subprocess_fd not in fd_mapping)
             fd = self._get_and_clear_socket_end(socket_id)
-            fd_mapping[subprocess_fd] = fd
+            add_mapping(subprocess_fd, fd)
             fds_to_be_closed_in_parent.append(fd)
 
         pid = os.fork()
         if pid == 0:
             apply_fd_mapping(fd_mapping)
-            for fd in fd_mapping.keys():
+            for fd, parent_fd in fd_mapping.items():
                 os.set_inheritable(fd, True)
+            #for fd in fds_to_shutdown_write_in_child:
+            #    logger.debug("fd {}: shutting down write half".format(fd))
+            #    shutdown(fd, socket.SHUT_WR)
+            #for fd in fds_to_shutdown_read_in_child:
+            #    logger.debug("fd {}: shutting down read half".format(fd))
+            #    shutdown(fd, socket.SHUT_RD)
             os.execvp(command[0], command)
         else:
             self._processes.add(pid)
@@ -228,6 +287,24 @@ class PipeGraphSpawner:
             self._make_pipe(pipe_id)
         return self._writing_ends[pipe_id]
 
+    def _hint_rw(self, pipe_a_id, pipe_b_id):
+        """ make a hint that specified pipes should be at a single fd """
+        if (
+            pipe_a_id not in self._writing_ends and
+            pipe_a_id not in self._reading_ends and
+            pipe_b_id not in self._writing_ends and
+            pipe_b_id not in self._reading_ends
+        ):
+            fd_a, fd_b = socketpair()
+            self._writing_ends[pipe_a_id] = fd_a
+            self._reading_ends[pipe_a_id] = fd_b
+            self._writing_ends[pipe_b_id] = fd_b
+            self._reading_ends[pipe_b_id] = fd_a
+            logger.info("pipes '{}' ({} -> {}) and '{}' ({} -> {}) created as a single socket".format(
+                pipe_a_id, fd_a, fd_b,
+                pipe_b_id, fd_b, fd_a,
+            ))
+
     def _get_and_clear_socket_end(self, socket_id):
         """ Behold! This method is unexpectedly unpure!
         Calling this method twice will have different results.
@@ -238,11 +315,7 @@ class PipeGraphSpawner:
             del self._socket_other_ends[socket_id]
             return fd
         else:
-            def getfd(sock):
-                fd = sock.detach()
-                assert(fd >= 0)
-                return fd
-            fd_a, fd_b = map(getfd, socket.socketpair())
+            fd_a, fd_b = socketpair()
             logger.info("socket pair '{}' created, fds {} <-> {}".format(socket_id, fd_a, fd_b))
             self._socket_other_ends[socket_id] = fd_b
             return fd_a
@@ -256,10 +329,11 @@ class PipeGraphSpawner:
         self._reading_ends[pipe_id] = reading_end
 
     def close_fds(self):
-        for fd in self._writing_ends.values():
-            logger.debug("fd {}: closing".format(fd))
-            os.close(fd)
-        for fd in self._reading_ends.values():
+        for fd in (
+            set(self._writing_ends.values()).union(
+                self._reading_ends.values()
+            )
+        ):
             logger.debug("fd {}: closing".format(fd))
             os.close(fd)
         for fd in self._socket_other_ends.values():
