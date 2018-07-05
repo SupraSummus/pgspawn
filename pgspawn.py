@@ -1,6 +1,7 @@
 from collections import namedtuple
 import logging
 import os
+import signal
 import socket
 import sys
 
@@ -15,11 +16,22 @@ def bimap_dict(key_f, val_f, d):
     }
 
 
+def str2sig(s):
+    try:
+        return int(s)
+    except ValueError:
+        pass
+    for sig in signal.Signals:
+        if s.upper() == sig.name:
+            return sig.value
+    raise ValueError("unknown signal '{}'".format(s))
+
+
 class GraphException(Exception):
     pass
 
 
-class Node(namedtuple('Node', ('command', 'inputs', 'outputs', 'sockets'))):
+class Node(namedtuple('Node', ('command', 'inputs', 'outputs', 'sockets', 'separate_group', 'signals'))):
     @classmethod
     def from_dict(cls, description):
         unknown_keys = description.keys() - set(cls._fields)
@@ -31,6 +43,8 @@ class Node(namedtuple('Node', ('command', 'inputs', 'outputs', 'sockets'))):
             inputs=bimap_dict(int, str, description.get('inputs', {})),
             outputs=bimap_dict(int, str, description.get('outputs', {})),
             sockets=bimap_dict(int, str, description.get('sockets', {})),
+            separate_group=bool(description.get('separate_group', False)),
+            signals=[str2sig(str(s)) for s in description.get('signals', [])],
         )
         return n
 
@@ -161,6 +175,8 @@ def apply_fd_mapping(fd_mapping):
 
 
 class PipeGraphSpawner:
+    Process = namedtuple('Process', ('command', 'signals'))
+
     @classmethod
     def from_graph(cls, graph):
         spawner = cls(
@@ -168,14 +184,20 @@ class PipeGraphSpawner:
             outputs=graph.outputs,
         )
         for node in graph.nodes:
-            spawner.spawn(node.command, node.inputs, node.outputs, node.sockets)
+            spawner.spawn(
+                node.command,
+                node.inputs, node.outputs, node.sockets,
+                node.separate_group, node.signals,
+            )
         return spawner
 
     def __init__(self, inputs={}, outputs={}, sockets={}):
         self._reading_ends = {}
         self._writing_ends = {}
         self._socket_other_ends = {}
-        self._processes = set()
+
+        # collection of running subprocesses. dict pid -> Process
+        self._processes = {}
 
         def register_fds(our_dict, input_dict):
             for id, fd in input_dict.items():
@@ -186,7 +208,7 @@ class PipeGraphSpawner:
         register_fds(self._reading_ends, inputs)
         register_fds(self._socket_other_ends, sockets)
 
-    def spawn(self, command, inputs, outputs, sockets):
+    def spawn(self, command, inputs, outputs, sockets, separate_group, signals):
         fd_mapping = {}
         fds_to_be_closed_in_parent = []
         for subprocess_fd, pipe_id in inputs.items():
@@ -203,16 +225,25 @@ class PipeGraphSpawner:
 
         pid = os.fork()
         if pid == 0:
+            # prepare fds
             apply_fd_mapping(fd_mapping)
             for fd in fd_mapping.keys():
                 os.set_inheritable(fd, True)
+
+            if separate_group:
+                # create new process group
+                os.setpgid(0, 0)
+
+            # run target executable
             os.execvp(command[0], command)
+
         else:
-            self._processes.add(pid)
-            logger.info("node {} spawned command={} fd_mapping={}".format(
-                pid,
-                command, fd_mapping,
-            ))
+            assert(pid not in self._processes)
+            self._processes[pid] = self.Process(command=command, signals=signals)
+            logger.info(
+                "process %d spawned command=%s fd_mapping=%s",
+                pid, command, fd_mapping,
+            )
             for fd in fds_to_be_closed_in_parent:
                 logger.debug("fd {}: closing".format(fd))
                 os.close(fd)
@@ -273,9 +304,25 @@ class PipeGraphSpawner:
             if pid in self._processes:
                 status = code // 256  # extract high byte which is exit code
                 if status != 0:
-                    logger.warning("node {} exited with unsuccessful code {}".format(pid, status))
+                    logger.warning(
+                        "process %d (%s) exited with unsuccessful code %d",
+                        pid, self._processes[pid].command, status,
+                    )
                 else:
-                    logger.info("node {} exited with status {}".format(pid, status))
-                self._processes.remove(pid)
+                    logger.info(
+                        "process %d (%s) exited with status %d",
+                        pid, self._processes[pid].command, status,
+                    )
+                del self._processes[pid]
                 statusses[pid] = status
+
+            else:
+                logger.warning("got exit status for unknown process %d", pid)
         return statusses
+
+    def dispatch_signal(self, sig):
+        logger.debug("got %s (%d)", signal.Signals(sig).name, sig)
+        for pid, process in self._processes.items():
+            if sig in process.signals:
+                logger.info("killing %d (%s) with %s (%d)", pid, process.command, signal.Signals(sig).name, sig)
+                os.kill(pid, sig)

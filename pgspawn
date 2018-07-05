@@ -23,8 +23,6 @@ parser.add_argument(
 )
 
 if __name__ == '__main__':
-    signal.signal(signal.SIGINT, lambda signal, frame: logging.debug("ignoring SIGINT"))
-
     arguments = parser.parse_args()
 
     # Sets log level to WARN going more verbose for each new -v.
@@ -49,6 +47,8 @@ if __name__ == '__main__':
 
     logging.debug("Making pipes, spawning child processes. Sounds like fun...")
     pgs = PipeGraphSpawner.from_graph(g)
+    for sig in set(signal.Signals) - set([signal.SIGKILL, signal.SIGSTOP]):
+        signal.signal(sig, lambda s, frame: pgs.dispatch_signal(s))
     pgs.close_fds()
     statusses = pgs.join()
 
