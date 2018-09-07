@@ -1,6 +1,8 @@
 PGSpawn
 =======
 
+[![Build Status](https://travis-ci.com/SupraSummus/pgspawn.svg?branch=master)](https://travis-ci.com/SupraSummus/pgspawn)
+
 Dead simple utility for spawning graph of processes connected by streams in UNIX system. Each process is being equiped with specified UNIX pipes and sockets at specified file descriptors. Whole graph description is contained in a YAML file.
 
 `pgspawn` is awesome! Why? Here are some arguments for it:
