@@ -2,7 +2,6 @@ from collections import namedtuple
 import logging
 import os
 import socket
-import sys
 
 
 logger = logging.getLogger(__name__)
@@ -32,7 +31,6 @@ class Node(namedtuple('Node', ('command', 'inputs', 'outputs', 'sockets'))):
             outputs=bimap_dict(int, str, description.get('outputs', {})),
             sockets=bimap_dict(int, str, description.get('sockets', {})),
         )
-        return n
 
 
 class Graph(namedtuple('Graph', ('inputs', 'outputs', 'sockets', 'nodes'))):
@@ -84,9 +82,13 @@ class Graph(namedtuple('Graph', ('inputs', 'outputs', 'sockets', 'nodes'))):
     def check_for_fd_collisions(self):
         for node_id, node in enumerate(self.nodes):
             colliding_fds = (
-                (node.inputs.keys() & node.outputs.keys()) |
-                (node.inputs.keys() & node.sockets.keys()) |
-                (node.outputs.keys() & node.sockets.keys())
+                (
+                    node.inputs.keys() & node.outputs.keys()
+                ) | (
+                    node.inputs.keys() & node.sockets.keys()
+                ) | (
+                    node.outputs.keys() & node.sockets.keys()
+                )
             )
             if len(colliding_fds) > 0:
                 raise GraphException(
@@ -127,11 +129,11 @@ class Graph(namedtuple('Graph', ('inputs', 'outputs', 'sockets', 'nodes'))):
         for socket_id, n in socket_uses.items():
             if n == 1:
                 logger.warning(
-                        "Socket name '{}' is used only one time."
-                        "The other end will be flapping in the breeze (untill we close it).".format(
-                            socket_id,
-                        )
+                    "Socket name '{}' is used only one time."
+                    "The other end will be flapping in the breeze (untill we close it).".format(
+                        socket_id,
                     )
+                )
 
 
 def apply_fd_mapping(fd_mapping):
