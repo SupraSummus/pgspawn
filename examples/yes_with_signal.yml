@@ -1,0 +1,12 @@
+nodes:
+  - command: [cat]
+    outputs:
+      1: feedback
+  - command: [tee, /proc/self/fd/3]
+    inputs:
+      0: feedback
+    outputs:
+      3: feedback
+    separate_group: True
+    signals:
+      - sigint
