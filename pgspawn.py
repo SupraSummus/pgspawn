@@ -232,6 +232,7 @@ class PipeGraphSpawner:
 
             if separate_group:
                 # create new process group
+                logger.debug("creating new process group")
                 os.setpgid(0, 0)
 
             # run target executable

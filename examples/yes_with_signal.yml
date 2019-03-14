@@ -9,4 +9,4 @@ nodes:
       3: feedback
     separate_group: True
     signals:
-      - sigint:
+      - sigint
