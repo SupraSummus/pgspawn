@@ -1,12 +1,12 @@
 outputs:
-  stdout: 1
+  - {fd: 1, name: stdout}
 nodes:
   - command: [echo, one]
     outputs:
-      1: stdout
+      - {fd: 1, name: stdout}
   - command: [echo, two]
     outputs:
-      1: stdout
+      - {fd: 1, name: stdout}
   - command: [echo, three]
     outputs:
-      1: stdout
+      - {fd: 1, name: stdout}
