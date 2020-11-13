@@ -1,0 +1,15 @@
+#!/usr/bin/env pgspawn
+nodes:
+  - command: [minos/minos, 0, 3, "-,1"]
+    inputs:
+      0: program
+      3: program_inner
+    outputs:
+      #1: test
+  - command: [cat, programs/cnew.c.bin]
+    outputs: {1: program}
+  - command: [cat, programs/hello.asm.bin]
+    outputs: {1: program_inner}
+  - command: [./stdin-eq, "parent\nhello world\n"]
+    inputs:
+      0: test

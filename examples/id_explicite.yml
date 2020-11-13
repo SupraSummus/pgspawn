@@ -1,10 +1,10 @@
 inputs:
-  stdin: 0
+  - {fd: 0, name: stdin}
 outputs:
-  stdout: 1
+  - {fd: 1, name: stdout}
 nodes:
   - command: [cat]
     inputs:
-      0: stdin
+      - {fd: 0, name: stdin}
     outputs:
-      1: stdout
+      - {fd: 1, name: stdout}

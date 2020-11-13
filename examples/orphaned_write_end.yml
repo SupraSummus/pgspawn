@@ -1,4 +1,4 @@
 nodes:
   - command: [/bin/true]
     inputs:
-      0: a_pipe
+      - {fd: 0, name: a_pipe}

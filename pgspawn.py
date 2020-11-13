@@ -8,10 +8,17 @@ import socket
 logger = logging.getLogger(__name__)
 
 
-def bimap_dict(key_f, val_f, d):
+def connection_arr2dict(arr):
     return {
-        key_f(k): val_f(v)
-        for k, v in d.items()
+        int(c['fd']): str(c['name'])
+        for c in arr
+    }
+
+
+def connection_arr2dict_inv(arr):
+    return {
+        str(c['name']): int(c['fd'])
+        for c in arr
     }
 
 
@@ -39,9 +46,9 @@ class Node(namedtuple('Node', ('command', 'inputs', 'outputs', 'sockets', 'separ
 
         return cls(
             command=[str(p) for p in description['command']],
-            inputs=bimap_dict(int, str, description.get('inputs', {})),
-            outputs=bimap_dict(int, str, description.get('outputs', {})),
-            sockets=bimap_dict(int, str, description.get('sockets', {})),
+            inputs=connection_arr2dict(description.get('inputs', [])),
+            outputs=connection_arr2dict(description.get('outputs', [])),
+            sockets=connection_arr2dict(description.get('sockets', [])),
             separate_group=bool(description.get('separate_group', False)),
             signals=[str2sig(str(s)) for s in description.get('signals', [])],
         )
@@ -55,9 +62,9 @@ class Graph(namedtuple('Graph', ('inputs', 'outputs', 'sockets', 'nodes'))):
             logger.warning("Unknown keys in graph description dict: {}".format(unknown_keys))
 
         g = cls(
-            inputs=bimap_dict(str, int, description.get('inputs', {})),
-            outputs=bimap_dict(str, int, description.get('outputs', {})),
-            sockets=bimap_dict(str, int, description.get('sockets', {})),
+            inputs=connection_arr2dict_inv(description.get('inputs', [])),
+            outputs=connection_arr2dict_inv(description.get('outputs', [])),
+            sockets=connection_arr2dict_inv(description.get('sockets', [])),
             nodes=list(map(Node.from_dict, description.get('nodes', []))),
         )
 

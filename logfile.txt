@@ -1,0 +1,5 @@
+Ncat: Version 7.70 ( https://nmap.org/ncat )
+Ncat: Listening on :::7000
+Ncat: Listening on 0.0.0.0:7000
+Ncat: Connection from 127.0.0.1.
+Ncat: Connection from 127.0.0.1:56596.
